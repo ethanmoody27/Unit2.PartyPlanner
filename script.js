@@ -1,7 +1,7 @@
 
 async function fetchPartyData() {
     try {
-        const response = await fetch('https://fsa-async-await.herokuapp.com/api/2309-FSA-ET-WEB-FT-SF/events');
+        const response = await fetch('https://fsa-crud-2aa9294fe819.herokuapp.com/api/2309-FSA-ET-WEB-FT-SF/events');
         const data = await response.json();
         return data;
     } catch (error) {
@@ -47,7 +47,7 @@ async function addNewParty(event) {
     };
 
     try {
-        const response = await fetch('https://fsa-crud-2aa9294fe819.herokuapp.com/api/${COHORT}/events', {
+        const response = await fetch('https://fsa-crud-2aa9294fe819.herokuapp.com/api/2309-FSA-ET-WEB-FT-SF/events', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -69,7 +69,7 @@ async function addNewParty(event) {
 
 async function deleteParty(partyId) {
     try {
-        const response = await fetch(`https://fsa-async-await.herokuapp.com/api/${COHORT}/events/${partyId}`, {
+        const response = await fetch(`https://fsa-crud-2aa9294fe819.herokuapp.com/api/2309-FSA-ET-WEB-FT-SF/events/${partyId}`, {
             method: 'DELETE'
         });
 
