@@ -1,92 +1,107 @@
+const COHORT = "2309-FSA-ET-WEB-FT-SF";
+const API = "https://fsa-crud-2aa9294fe819.herokuapp.com/api/" + COHORT;
 
-async function fetchPartyData() {
-    try {
-        const response = await fetch('https://fsa-crud-2aa9294fe819.herokuapp.com/api/2309-FSA-ET-WEB-FT-SF/events');
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Error fetching party data:', error);
-    }
-};
-
-function renderPartyList(partyData) {
-    const partyList = document.getElementById('partyList');
-
-    partyList.innerHTML = '';
-
-    if (partyData.length === 0) {
-        partyList.innerHTML = '<li>No parties available.</li>';
-    } else {
-        partyData.forEach(party => {
-            const listItem = document.createElement('li');
-            listItem.innerHTML = `
-                <strong>Name:</strong> ${party.name}<br>
-                <strong>Date:</strong> ${party.date}<br>
-                <strong>Time:</strong> ${party.time}<br>
-                <strong>Location:</strong> ${party.location}<br>
-                <strong>Description:</strong> ${party.description}<br>
-                <button onclick="deleteParty('${party.id}')">Delete</button>
-            `;
-            partyList.appendChild(listItem);
-        });
-    }
-};
-
-async function addNewParty(event) {
-    event.preventDefault();
-
-    const form = event.target;
-    const formData = new FormData(form);
-
-    const partyDetails = {
-        name: formData.get('name'),
-        date: formData.get('date'),
-        time: formData.get('time'),
-        location: formData.get('location'),
-        description: formData.get('description')
-    };
-
-    try {
-        const response = await fetch('https://fsa-crud-2aa9294fe819.herokuapp.com/api/2309-FSA-ET-WEB-FT-SF/events', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(partyDetails)
-        });
-
-        if (response.ok) {
-            const updatedPartyData = await fetchPartyData();
-            renderPartyList(updatedPartyData);
-            form.reset();
-        } else {
-            console.error('Failed to add new party');
-        }
-    } catch (error) {
-        console.error('Error adding new party:', error);
-    }
-};
-
-async function deleteParty(partyId) {
-    try {
-        const response = await fetch(`https://fsa-crud-2aa9294fe819.herokuapp.com/api/2309-FSA-ET-WEB-FT-SF/events/${partyId}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            const updatedPartyData = await fetchPartyData();
-            renderPartyList(updatedPartyData);
-        } else {
-            console.error('Failed to delete party');
-        }
-    } catch (error) {
-        console.error('Error deleting party:', error);
-    }
-};
-
-async function initializePage() {
-    const partyData = await fetchPartyData();
-    renderPartyList(partyData);
+const state = {
+  parties: []
 }
 
-window.addEventListener('load', initializePage);
+const partiesForm = document.querySelector('#newPartyForm')
+const partiesList = document.querySelector('#partyList')
+
+partiesForm.addEventListener('submit', addParty)
+
+async function getPartyInfo(){
+  try{
+    const response = await fetch(API + "/events");
+    const json = await response.json();
+    state.parties = json.data;
+  } catch(err){
+    console.log(err)
+  }
+}
+
+async function createParty(name, description, date, location) {
+  const response = await fetch(API + "/events", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      name,
+      description,
+      date,
+      location
+    })
+  })
+  const json = await response.json()
+  if (json.error){
+    console.log(json.message)
+  }
+  render()
+}
+
+async function addParty(event) {
+  event.preventDefault();
+  const rawDate = partiesForm.date.value;
+
+  // Check if the entered date is in a valid format
+  if (!Date.parse(rawDate)) {
+    console.error("Invalid date format");
+    return;
+  }
+
+  const date = new Date(rawDate);
+  await createParty(
+    partiesForm.name.value,
+    partiesForm.description.value,
+    date.toISOString(),
+    partiesForm.location.value
+  );
+
+  partiesForm.name.value = "";
+  partiesForm.description.value = "";
+  partiesForm.date.value = "";
+  partiesForm.location.value = "";
+}
+
+async function deleteParty(id){
+  try {
+    const response = await fetch(`${API}/${id}`, {method: "DELETE"})
+    if (!response.ok){
+      throw new Error("oops!")
+    }
+    render();
+  } catch (err){
+    console.log(err)
+  }
+}
+
+function renderAllParties() {
+  if (!state.parties.length){
+    partiesList.innerHTML = `<li>No parties! Why don't you throw one?</li>`;
+    return;
+  }
+  const elements = state.parties.map(renderSingleParty)
+  partiesList.replaceChildren(...elements)
+}
+
+async function render() {
+  await getPartyInfo();
+  renderAllParties();
+}
+
+render();
+
+function renderSingleParty(party){
+  const partyCard = document.createElement('section')
+  partyCard.classList.add("party-card")
+  partyCard.innerHTML = `
+  <h2>${party.name}</h2>
+  <p>${party.date}</p>
+  <p>${party.location}</p>
+  <p>${party.description}</p>
+  `
+  const deleteButton = document.createElement('button')
+  deleteButton.textContent = "Delete"
+  deleteButton.addEventListener('click', () => deleteParty(party.id))
+  partyCard.append(deleteButton)
+  return partyCard
+}
